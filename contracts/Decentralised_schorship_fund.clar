@@ -194,3 +194,25 @@
             { donor: tx-sender, category: category } 
             { amount: new-amount }))
         (map-set donor-earmarks { donor: tx-sender, category: category } { amount: amount })))
+            ;; Update total scholarship fund
+    (let ((new-fund (try! (safe-add (var-get total-scholarship-fund) amount))))
+      (var-set total-scholarship-fund new-fund)
+      (ok true))
+  )
+)
+
+;; Public read-only function to get earmarked amount for a category
+(define-read-only (get-earmarked-amount (category (string-ascii 50)))
+  (match (map-get? earmarked-funds { category: category })
+    earmark (ok (get amount earmark))
+    (err err-not-found)
+  )
+)
+
+;; Public read-only function to get donor's earmarked amount for a category
+(define-read-only (get-donor-earmarked-amount (donor principal) (category (string-ascii 50)))
+  (match (map-get? donor-earmarks { donor: donor, category: category })
+    earmark (ok (get amount earmark))
+    (err err-not-found)
+  )
+)
