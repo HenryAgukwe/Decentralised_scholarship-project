@@ -89,3 +89,40 @@
     )
   )
 )
+;; Public Function: Approve or Reject Application
+(define-public (evaluate-application (student principal) (approve bool))
+  (begin
+    (asserts! (is-owner) err-not-owner)
+    ;; Validate student principal
+    (asserts! (validate-principal student) err-invalid-principal)
+    ;; Check if the application exists
+    (let ((application (map-get? applicants { student: student })))
+      (asserts! (is-some application) err-not-found)
+      (let ((application-data (unwrap! application err-not-found)))
+        (if approve
+          (begin
+            (let ((requested (get amount-requested application-data)))
+              (asserts! (>= (var-get total-scholarship-fund) requested) err-insufficient-funds)
+              ;; Transfer tokens to student and update fund
+              (try! (ft-transfer? scholarship-token requested (var-get owner) student))
+              (map-set applicants
+                { student: student }
+                { status: "approved", amount-requested: requested, reason: (get reason application-data) }
+              )
+              (var-set total-scholarship-fund (- (var-get total-scholarship-fund) requested))
+              (ok true)
+            )
+          )
+          (begin
+            ;; If rejected, update status
+            (map-set applicants
+              { student: student }
+              { status: "rejected", amount-requested: (get amount-requested application-data), reason: (get reason application-data) }
+            )
+            (ok false)
+          )
+        )
+      )
+    )
+  )
+)
